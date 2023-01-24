@@ -1,0 +1,1 @@
+document.getElementById("orderId").innerHTML = getIdFromURL();
