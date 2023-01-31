@@ -81,22 +81,23 @@ function findItemId(id, color, cart) { //return the index of 'id' in the array, 
     return -1;
 }
 
-
-function getItemInfo(item, cart) { //returns an object containing quantity and index of an item
+function getItemQty(item) {
+    return item.closest(".itemQuantity").value;
+}
+function getItemPos(item, cart) {
     const id = item.closest(".cart__item").getAttribute("data-id");
     const color = item.closest(".cart__item").getAttribute("data-color");
     const pos = findItemId(id, color, cart);
-    const newQty = item.closest(".itemQuantity").value;
-
-    return { qty: newQty, pos: pos };
+    return pos;
 }
 
 
 function updateCart() { //updates local storage with the new quantity from form
     var cart = localStorage.getItem("cart").split(",");
-    const itemInfo = getItemInfo(this, cart);
+    const qty = getItemQty(this, cart);
+    const pos = getItemPos(this);
 
-    cart[itemInfo.pos + 1] = itemInfo.qty;
+    cart[pos + 1] = qty;
     localStorage.setItem("cart", cart);
     updateCartTotal(cart);
 }
@@ -104,7 +105,6 @@ function updateCart() { //updates local storage with the new quantity from form
 function removeDeletedItems(cart) { //returns a cart array without the removed items
     var newCart = [];
     for (let i = 0; i < cart.length; i++) {
-        const element = cart[i];
         if (cart[i] != "void") {
             newCart.push(cart[i]);
         }
@@ -114,15 +114,16 @@ function removeDeletedItems(cart) { //returns a cart array without the removed i
 
 function deleteFromCart() {//removes an item data from cart in local storage
     var cart = localStorage.getItem("cart").split(",");
-    const itemInfo = getItemInfo(this, cart);
-
-    cart[itemInfo.pos] = "void";
-    cart[itemInfo.pos + 1] = "void";
-    cart[itemInfo.pos + 2] = "void";
+    const itemPos = getItemPos(this, cart);
+    console.log(cart + "---" + itemPos +"---" + cart[itemPos]);
+    cart[itemPos] = "void";
+    cart[itemPos + 1] = "void";
+    cart[itemPos + 2] = "void";
     cart = removeDeletedItems(cart);
 
     localStorage.setItem("cart", cart);
     printCart();
+    initEventListeners();
 }
 
 
@@ -145,6 +146,9 @@ async function initEventListeners() { //initialize all events listeners
 
 
 
+const namePattern = "[a-zA-Z-']{3,}"; //3 letters or more, including - and '
+const addressPattern = "[0-9]{1,4}[a-zA-Z ]{1, 64}";
+const emailPattern = "[a-zA-Z.0-9]{3,}@[a-zA-Z]{2,}.[a-zA-Z]{2,16}"; //at least 3 letters or numbers or a dot + @ + at least 2 letters + . + at least 2 letters, max 16
 
 function initFormPatterns() { //sets patterns for input fields
     const firstName = document.getElementById("firstName").value;
@@ -153,14 +157,11 @@ function initFormPatterns() { //sets patterns for input fields
     const city = document.getElementById("city").value;
     const email = document.getElementById("email").value;
 
-    const wordPattern = "[a-zA-Z-']{3,}"; //3 letters or more, including - and '
-    const addressPattern = "[0-9]{1,4}[a-zA-Z ]{1, 64}";
-    const emailPattern = "[a-zA-Z.0-9]{3,}@[a-zA-Z]{2,}.[a-zA-Z]{2,16}"; //at least 3 letters or numbers or a dot + @ + at least 2 letters + . + at least 2 letters, max 16
 
-    firstName.pattern = wordPattern;
-    lastName.pattern = wordPattern;
+    firstName.pattern = namePattern;
+    lastName.pattern = namePattern;
     address.pattern = addressPattern;
-    city.pattern = wordPattern;
+    city.pattern = namePattern;
     email.pattern = emailPattern;
 }
 
@@ -168,20 +169,19 @@ function initFormPatterns() { //sets patterns for input fields
 function isInputValid(input, type) { //checks if an input is valid
     switch (type) {
         case "name":
-            return /^[a-zA-Z]+$/.test(input);
+            return /^namePattern$/.test(input);
             break;
         case "email":
-            return /^[a-zA-Z.]+[@][a-zA-Z]+[.][a-zA-Z]+$/.test(input);
+            return /^emailPattern$/.test(input);
             break;
-        case "city":
-            return 1;
+        case "address":
+            return /^addressPattern$/.test(input);
             break;
         default:
             return -1;
     }
 }
 
-//checkOrderForm peut etre redondant avec les patterns 
 var checkOrderForm = function (event) {//checks if the form contains valid data
     event.preventDefault();
 
@@ -191,7 +191,7 @@ var checkOrderForm = function (event) {//checks if the form contains valid data
     let city = document.getElementById("city").value;
     let email = document.getElementById("email").value;
 
-    if (isInputValid(firstName, "name") && isInputValid(lastName, "name") && isInputValid(email, "email")) {
+    if (isInputValid(firstName, "name") && isInputValid(lastName, "name") && isInputValid(address, "address") && isInputValid(city, "name") && isInputValid(email, "email")) {
         //form is valid
 
         let contact = { firstName: firstName, lastName: lastName, address: address, city: city, email: email };
